@@ -1,0 +1,259 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-a1b2-c3d4-e5f6a1b2c3d4",
+		"name": "Express Backend API Collection",
+		"description": "Professional API collection for testing Admin, Seller, and Product modules.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success) {",
+									"    pm.environment.set(\"ADMIN_TOKEN\", jsonData.data.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/admin/login",
+							"host": ["{{BASE_URL}}"],
+							"path": ["admin", "login"]
+						}
+					}
+				},
+				{
+					"name": "Create Seller",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{ADMIN_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Seller\",\n    \"email\": \"seller@example.com\",\n    \"mobileNo\": \"+919876543210\",\n    \"country\": \"India\",\n    \"state\": \"Delhi\",\n    \"skills\": [\"Electronics\", \"Gadgets\"],\n    \"password\": \"seller123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/admin/sellers",
+							"host": ["{{BASE_URL}}"],
+							"path": ["admin", "sellers"]
+						}
+					}
+				},
+				{
+					"name": "List Sellers",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{ADMIN_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/admin/sellers?page=1&limit=10",
+							"host": ["{{BASE_URL}}"],
+							"path": ["admin", "sellers"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "10" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Seller",
+			"item": [
+				{
+					"name": "Seller Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success) {",
+									"    pm.environment.set(\"SELLER_TOKEN\", jsonData.data.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"seller@example.com\",\n    \"password\": \"seller123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/seller/login",
+							"host": ["{{BASE_URL}}"],
+							"path": ["seller", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Add Product",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SELLER_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "productName", "value": "Gaming Laptop", "type": "text" },
+								{ "key": "productDescription", "value": "High performance gaming laptop", "type": "text" },
+								{ "key": "brands", "value": "[{\"brandName\":\"Asus\",\"detail\":\"ROG Strix\",\"price\":1500}]", "type": "text" },
+								{ "key": "brandImages", "type": "file", "src": [] }
+							]
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/products",
+							"host": ["{{BASE_URL}}"],
+							"path": ["products"]
+						}
+					}
+				},
+				{
+					"name": "List My Products",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SELLER_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/products?page=1&limit=5",
+							"host": ["{{BASE_URL}}"],
+							"path": ["products"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "5" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Download Product PDF",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SELLER_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/products/:id/pdf",
+							"host": ["{{BASE_URL}}"],
+							"path": ["products", ":id", "pdf"],
+							"variable": [
+								{ "key": "id", "value": "PRODUCT_ID_HERE" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SELLER_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/products/:id",
+							"host": ["{{BASE_URL}}"],
+							"path": ["products", ":id"],
+							"variable": [
+								{ "key": "key", "value": "PRODUCT_ID_HERE" }
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}
