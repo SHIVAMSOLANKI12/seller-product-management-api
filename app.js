@@ -78,11 +78,18 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/products', productRoutes);
 
+import ErrorResponse from './utils/errorResponse.js';
+
 app.get('/', (req, res) => {
     res.json({ 
         message: 'Welcome to the Express Backend API',
         documentation: '/api-docs'
     });
+});
+
+// 404 handler
+app.use((req, res, next) => {
+    next(new ErrorResponse(`Route not found - ${req.originalUrl}`, 404));
 });
 
 // Error handling middleware

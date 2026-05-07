@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
+import ErrorResponse from '../utils/errorResponse.js';
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -28,23 +29,23 @@ export const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
 
-        // Validate email & password
+        // Validate email & password (redundant but safe)
         if (!email || !password) {
-            return errorResponse(res, 'Please provide an email and password', 400);
+            return next(new ErrorResponse('Please provide an email and password', 400));
         }
 
         // Check for user
         const user = await User.findOne({ email }).select('+password');
 
         if (!user) {
-            return errorResponse(res, 'Invalid credentials', 401);
+            return next(new ErrorResponse('Invalid credentials', 401));
         }
 
         // Check if password matches
         const isMatch = await user.matchPassword(password);
 
         if (!isMatch) {
-            return errorResponse(res, 'Invalid credentials', 401);
+            return next(new ErrorResponse('Invalid credentials', 401));
         }
 
         sendTokenResponse(user, 200, res, 'User logged in successfully');
@@ -87,6 +88,9 @@ const sendTokenResponse = (user, statusCode, res, message) => {
 export const getMe = async (req, res, next) => {
     try {
         const user = await User.findById(req.user.id);
+        if (!user) {
+            return next(new ErrorResponse('User not found', 404));
+        }
         successResponse(res, 'User details retrieved', user);
     } catch (err) {
         next(err);

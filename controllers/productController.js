@@ -3,8 +3,10 @@ import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import { generateProductPDF } from '../services/productPdfService.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { getPagination } from '../utils/paginationUtils.js';
+import ErrorResponse from '../utils/errorResponse.js';
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
 
 // @desc    Add Product
 // @route   POST /api/products
@@ -12,7 +14,16 @@ import fs from 'fs';
 export const addProduct = asyncHandler(async (req, res, next) => {
     const { productName, productDescription } = req.body;
     
-    let brands = typeof req.body.brands === 'string' ? JSON.parse(req.body.brands) : req.body.brands;
+    let brands;
+    try {
+        brands = typeof req.body.brands === 'string' ? JSON.parse(req.body.brands) : req.body.brands;
+    } catch (error) {
+        return next(new ErrorResponse('Invalid format for brands. Please provide valid JSON.', 400));
+    }
+
+    if (!Array.isArray(brands)) {
+        return next(new ErrorResponse('Brands must be an array.', 400));
+    }
 
     if (req.files && req.files.length > 0) {
         brands = brands.map((brand, index) => {
@@ -58,22 +69,29 @@ export const deleteProduct = asyncHandler(async (req, res, next) => {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-        return errorResponse(res, 'Product not found', 404);
+        return next(new ErrorResponse('Product not found', 404));
     }
 
     if (product.seller.toString() !== req.user.id) {
-        return errorResponse(res, 'Not authorized to delete this product', 401);
+        return next(new ErrorResponse('Not authorized to delete this product', 401));
     }
 
-    product.brands.forEach((brand) => {
+    // Use Promise.all for parallel file deletions
+    const deletionPromises = product.brands.map(async (brand) => {
         if (brand.image) {
             const imgPath = path.join(process.cwd(), brand.image);
-            if (fs.existsSync(imgPath)) {
-                fs.unlinkSync(imgPath);
+            try {
+                if (existsSync(imgPath)) {
+                    await fs.unlink(imgPath);
+                }
+            } catch (err) {
+                console.error(`Failed to delete image: ${imgPath}`, err);
+                // We don't block the whole deletion if one image fails
             }
         }
     });
 
+    await Promise.all(deletionPromises);
     await product.deleteOne();
 
     successResponse(res, 'Product deleted successfully', {});
@@ -86,16 +104,43 @@ export const getProductPDF = asyncHandler(async (req, res, next) => {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-        return errorResponse(res, 'Product not found', 404);
+        return next(new ErrorResponse('Product not found', 404));
     }
 
     if (product.seller.toString() !== req.user.id && req.user.role !== 'admin') {
-        return errorResponse(res, 'Not authorized', 401);
+        return next(new ErrorResponse('Not authorized', 401));
     }
 
-    const filePath = path.join(process.cwd(), 'uploads', `product-${product._id}.pdf`);
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const filePath = path.join(uploadsDir, `product-${product._id}.pdf`);
     
-    await generateProductPDF(product, filePath);
+    // Ensure uploads directory exists
+    try {
+        await fs.mkdir(uploadsDir, { recursive: true });
+    } catch (err) {
+        return next(new ErrorResponse('Failed to prepare uploads directory', 500));
+    }
 
-    res.download(filePath, `${product.productName}-details.pdf`);
+    try {
+        await generateProductPDF(product, filePath);
+        
+        res.download(filePath, `${product.productName}-details.pdf`, async (err) => {
+            if (err) {
+                // If headers not sent, we can still call next(err)
+                if (!res.headersSent) {
+                    return next(new ErrorResponse('Error downloading the file', 500));
+                }
+            }
+            // Cleanup: delete file after download attempt
+            try {
+                if (existsSync(filePath)) {
+                    await fs.unlink(filePath);
+                }
+            } catch (cleanupErr) {
+                console.error('Failed to cleanup PDF:', cleanupErr);
+            }
+        });
+    } catch (pdfErr) {
+        return next(new ErrorResponse(`Failed to generate PDF: ${pdfErr.message}`, 500));
+    }
 });

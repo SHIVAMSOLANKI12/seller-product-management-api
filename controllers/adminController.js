@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { generateToken } from '../utils/jwtUtils.js';
 import { getPagination } from '../utils/paginationUtils.js';
+import ErrorResponse from '../utils/errorResponse.js';
 
 // @desc    Admin Login
 // @route   POST /api/admin/login
@@ -13,7 +14,7 @@ export const adminLogin = asyncHandler(async (req, res, next) => {
     const user = await User.findOne({ email, role: 'admin' }).select('+password');
 
     if (!user || !(await user.matchPassword(password))) {
-        return errorResponse(res, 'Invalid admin credentials', 401);
+        return next(new ErrorResponse('Invalid admin credentials', 401));
     }
 
     const token = generateToken(user._id);
@@ -37,7 +38,7 @@ export const createSeller = asyncHandler(async (req, res, next) => {
 
     const userExists = await User.findOne({ email });
     if (userExists) {
-        return errorResponse(res, 'User with this email already exists', 400);
+        return next(new ErrorResponse('User with this email already exists', 400));
     }
 
     const seller = await User.create({

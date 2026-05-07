@@ -25,11 +25,14 @@ export const generateProductPDF = (product, filePath) => {
             let totalPrice = 0;
 
             product.brands.forEach((brand, index) => {
-                doc.fontSize(12).fillColor('#000').text(`${index + 1}. ${brand.brandName}`);
-                doc.fontSize(10).fillColor('#555').text(`   Detail: ${brand.detail || 'N/A'}`);
-                doc.fontSize(10).fillColor('#000').text(`   Price: $${brand.price.toFixed(2)}`);
+                const brandName = brand.brandName || 'Unknown Brand';
+                const price = typeof brand.price === 'number' ? brand.price : parseFloat(brand.price) || 0;
 
-                totalPrice += brand.price;
+                doc.fontSize(12).fillColor('#000').text(`${index + 1}. ${brandName}`);
+                doc.fontSize(10).fillColor('#555').text(`   Detail: ${brand.detail || 'N/A'}`);
+                doc.fontSize(10).fillColor('#000').text(`   Price: $${price.toFixed(2)}`);
+
+                totalPrice += price;
 
                 // Handle Brand Image if exists
                 if (brand.image) {

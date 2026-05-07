@@ -1,18 +1,16 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
+import { mkdir } from 'fs/promises';
 import path from 'path';
 
-export const generateUserReport = (user, filePath) => {
+export const generateUserReport = async (user, filePath) => {
+    // Ensure directory exists
+    const dir = path.dirname(filePath);
+    await mkdir(dir, { recursive: true });
+
     return new Promise((resolve, reject) => {
         try {
             const doc = new PDFDocument();
-            
-            // Ensure directory exists
-            const dir = path.dirname(filePath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
-            }
-
             const stream = fs.createWriteStream(filePath);
             doc.pipe(stream);
 
